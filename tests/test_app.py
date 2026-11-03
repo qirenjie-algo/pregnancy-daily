@@ -201,6 +201,7 @@ class TestHTTP(unittest.TestCase):
             "port": 8787,
             "base_url": "",
             "channels": [],
+            "_today": TODAY.isoformat(),  # 冻结「今天」，避免跨零点导致测试漂移
         }
         cls.server = ThreadingHTTPServer(("127.0.0.1", 0), app_module.Handler)
         cls.port = cls.server.server_address[1]

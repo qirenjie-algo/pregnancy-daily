@@ -75,6 +75,9 @@ STATIC_TYPES = {
 def make_gestation(config: dict, date: dt.date = None) -> Gestation:
     lmp = parse_date(config["lmp"])
     today = date or dt.date.today()
+    # 测试/预览用：config 里写 "_today" 可冻结「今天」
+    if date is None and config.get("_today"):
+        today = parse_date(config["_today"])
     return Gestation(lmp, today)
 
 
