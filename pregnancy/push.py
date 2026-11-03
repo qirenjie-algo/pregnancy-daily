@@ -8,11 +8,14 @@ from __future__ import annotations
 import base64
 import hashlib
 import hmac
+import io
 import json
+import re
 import time
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 from .content import DailyCard, markdown, plain_text
@@ -20,9 +23,12 @@ from .store import log_record, pushed_today
 
 USER_AGENT = "PregnancyDaily/1.0 (+local)"
 TIMEOUT = 12
+ASSET_DIR = Path(__file__).resolve().parent.parent / "web" / "assets"
 
 # 企业微信 markdown 上限 4096 字节，预留余量
 WECOM_LIMIT = 3800
+# 企业微信图片消息 base64 上限 2MB，留安全余量
+WECOM_IMAGE_LIMIT = 1_400_000
 
 
 @dataclass
@@ -31,6 +37,7 @@ class Message:
     markdown: str
     text: str
     url: str = ""
+    week: int = 0
 
     def clipped_markdown(self, limit: int = WECOM_LIMIT) -> str:
         raw = self.markdown
@@ -47,6 +54,10 @@ class Message:
             total += size
         return "".join(out) + suffix
 
+    def markdown_without_images(self, limit: int = WECOM_LIMIT) -> str:
+        """企业微信 markdown 不渲染图片语法，先把图片行去掉。"""
+        return re.sub(r"!\[[^\]]*\]\([^)]*\)\s*", "", self.clipped_markdown(limit))
+
 
 def build_message(card: DailyCard, config: Dict, url: str = "") -> Message:
     return Message(
@@ -54,7 +65,30 @@ def build_message(card: DailyCard, config: Dict, url: str = "") -> Message:
         markdown=markdown(card, url, config),
         text=plain_text(card, url),
         url=url,
+        week=card.g.week,
     )
+
+
+def _week_image(week: int) -> Optional[bytes]:
+    """取本周配图：优先把 WebP 首帧转成 PNG（720×405），否则退回缩略图。"""
+    webp = ASSET_DIR / ("week-%02d.webp" % week)
+    thumb = ASSET_DIR / ("week-%02d.png" % week)
+    try:
+        from PIL import Image
+
+        if webp.exists():
+            with Image.open(webp) as img:
+                img.seek(0)
+                buffer = io.BytesIO()
+                img.convert("RGB").save(buffer, "PNG", optimize=True)
+            data = buffer.getvalue()
+            if len(data) <= WECOM_IMAGE_LIMIT:
+                return data
+    except Exception:
+        pass
+    if thumb.exists():
+        return thumb.read_bytes()
+    return None
 
 
 def _post_json(url: str, payload: Dict) -> Tuple[bool, str]:
@@ -175,12 +209,31 @@ def send_wecom(channel: Dict, msg: Message) -> Tuple[bool, str]:
         url = "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=%s" % channel["key"]
     if not url:
         return False, "缺少 webhook 或 key"
-    content = msg.clipped_markdown()
+
+    # 企业微信 markdown 不支持图片，先单独发一条图片消息
+    image_note = ""
+    if channel.get("image", True) and msg.week:
+        data = _week_image(msg.week)
+        if data:
+            ok, body = _post_json(
+                url,
+                {
+                    "msgtype": "image",
+                    "image": {
+                        "base64": base64.b64encode(data).decode("ascii"),
+                        "md5": hashlib.md5(data).hexdigest(),
+                    },
+                },
+            )
+            if not ok or not _done(body)[0]:
+                image_note = "（配图发送失败：%s）" % body[:80]
+
+    content = msg.markdown_without_images()
     if msg.url:
         content += "\n\n[查看完整卡片](%s)" % msg.url
     payload = {"msgtype": "markdown", "markdown": {"content": content}}
     ok, body = _post_json(url, payload)
-    return _done(body)
+    return _done(body) if ok else (ok, body + image_note)
 
 
 def send_dingtalk(channel: Dict, msg: Message) -> Tuple[bool, str]:

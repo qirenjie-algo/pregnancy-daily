@@ -70,5 +70,8 @@ jobs:
         env:
           PREGNANCY_CONFIG: ${{ secrets.PREGNANCY_CONFIG }}
 
+      - name: 安装 Pillow（企业微信配图用）
+        run: pip install --quiet pillow
+
       - name: 发送今日推送（含配图与往期链接）
         run: python app.py push

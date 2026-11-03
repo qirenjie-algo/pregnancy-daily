@@ -194,6 +194,9 @@ App Store 安装 Bark，复制 key（`https://api.day.app/xxxxxxxx` 的最后一
 { "name": "飞书", "type": "feishu", "enabled": true, "webhook": "https://open.feishu.cn/open-apis/bot/v2/hook/xxx" }
 ```
 
+> 企业微信的 markdown 不渲染图片，程序会自动先发一条**图片消息**（本周配图），再发文字卡片，图文都能看到。
+> 其它通道（Server 酱 / PushPlus / Telegram / 飞书）直接用 markdown 图片语法。
+
 配好后先预览再发送：
 
 ```bash
