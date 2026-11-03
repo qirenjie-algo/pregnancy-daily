@@ -76,6 +76,13 @@ body{
 .dad{background:linear-gradient(135deg,#fff0e6,#ffe4d6);border:none}
 .dad p{font-size:15px}
 .quote{font-size:14px;color:#9a7b6c;font-style:italic;text-align:center;padding:4px 0}
+.lesson .hook{color:var(--muted);font-size:14px;margin:0 0 10px}
+.lesson .sec{font-size:14.5px;margin-bottom:10px;line-height:1.7}
+.lesson .sec b{color:#c9603f}
+.lesson .note{margin-top:12px}
+.safety{background:#fff7f4;border-color:#f6d6c9}
+.safety p{font-size:14.5px;margin:0}
+.safety b{color:#c9603f}
 footer{text-align:center;color:#b7a9a2;font-size:12px;padding:18px 10px 26px;line-height:1.7}
 nav{position:fixed;left:0;right:0;bottom:0;background:rgba(255,255,255,.94);
   backdrop-filter:blur(10px);border-top:1px solid var(--line);display:flex;max-width:520px;margin:0 auto;z-index:9}
@@ -265,7 +272,39 @@ def render_day(card: DailyCard, config: dict, share_url: str = "", pager: str = 
     highlights = "".join('<span class="pill">%s</span>' % _esc(h) for h in card.diet.highlights)
     avoid = "".join('<span class="pill">%s</span>' % _esc(a) for a in card.diet.avoid)
     supplements = "".join('<div class="tip">%s</div>' % _esc(s) for s in card.diet.supplements)
-    tips = _list([week.get("tip", "")] + card.tips_extra)
+    trick_lines = ["%s：%s" % (h.get("title", ""), h.get("detail", "")) for h in card.hacks]
+    tips = _list([week.get("tip", "")] + trick_lines + card.tips_extra)
+
+    lesson_html = ""
+    if card.lesson:
+        sections = "".join(
+            '<div class="sec"><b>%s</b>：%s</div>' % (_esc(sec.get("h", "")), _esc(sec.get("p", "")))
+            for sec in card.lesson.get("sections", [])
+        )
+        tip_block = (
+            '<div class="note">💡 %s</div>' % _esc(card.lesson["tip"])
+            if card.lesson.get("tip")
+            else ""
+        )
+        lesson_html = (
+            '<div class="card lesson"><h2><span class="ico">📚</span>科普小课堂 · %s</h2>'
+            '<p class="hook">%s</p>%s%s</div>'
+            % (
+                _esc(card.lesson.get("title", "")),
+                _esc(card.lesson.get("hook", "")),
+                sections,
+                tip_block,
+            )
+        )
+
+    safety_html = ""
+    if card.safety:
+        safety_html = (
+            '<div class="card safety"><h2><span class="ico">🛡️</span>安全提醒</h2>'
+            "<p><b>%s</b>：%s</p></div>"
+            % (_esc(card.safety.get("title", "")), _esc(card.safety.get("detail", "")))
+        )
+
     kick = (
         '<div class="card"><h2><span class="ico">👶</span>今日胎动</h2><p>%s</p></div>' % _esc(card.kick_text)
         if card.kick_text else ""
@@ -293,6 +332,8 @@ def render_day(card: DailyCard, config: dict, share_url: str = "", pager: str = 
   <p class="muted"><b>营养重点：</b>%s</p>
 </div>
 
+<!--LESSON-->
+
 <div class="card">
   <h2><span class="ico">🍲</span>今日饮食 <span class="badge">%s</span></h2>
   <ul class="meals">%s</ul>
@@ -313,6 +354,8 @@ def render_day(card: DailyCard, config: dict, share_url: str = "", pager: str = 
   <h2><span class="ico">⚠️</span>今日注意</h2>
   %s
 </div>
+
+<!--SAFETY-->
 
 <div class="card">
   <h2><span class="ico">💡</span>生活小贴士</h2>
@@ -376,6 +419,7 @@ def render_day(card: DailyCard, config: dict, share_url: str = "", pager: str = 
         pager,
         _esc(config.get("push_time", "07:30")),
     )
+    body = body.replace("<!--LESSON-->", lesson_html).replace("<!--SAFETY-->", safety_html)
     return _page("%s · %s" % (g.label, APP_NAME), body, "today")
 
 

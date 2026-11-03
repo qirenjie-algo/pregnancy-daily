@@ -90,6 +90,14 @@ def load_meals() -> dict:
     return _load_json("meals.json")
 
 
+def load_classroom() -> List[dict]:
+    return _load_json("classroom.json")
+
+
+def load_tips() -> dict:
+    return _load_json("tips.json")
+
+
 def week_entry(weeks: Dict[int, dict], week: int) -> dict:
     """取某一周的内容；41/42 周或缺失时回退到最近的一周。"""
     if week in weeks:
@@ -141,6 +149,9 @@ class DailyCard:
     kick_text: str = ""
     week_note: str = ""
     tips_extra: List[str] = field(default_factory=list)
+    lesson: Dict = field(default_factory=dict)
+    safety: Dict = field(default_factory=dict)
+    hacks: List[Dict] = field(default_factory=list)
 
     # ---------- 派生 ----------
     @property
@@ -180,6 +191,9 @@ class DailyCard:
             "kick_text": self.kick_text,
             "week_note": self.week_note,
             "tips_extra": self.tips_extra,
+            "lesson": self.lesson,
+            "safety": self.safety,
+            "hacks": self.hacks,
             "subject": self.subject,
         }
 
@@ -287,17 +301,57 @@ def checkup_status(g: Gestation, schedule: List[dict], week: int) -> List[Checku
     return result
 
 
+def pick_lesson(g: Gestation, lessons: List[dict]) -> Dict:
+    """优先讲和本周相关的课（产检/阶段），否则在全部课程里轮换。"""
+    if not lessons:
+        return {}
+    matched = [item for item in lessons if g.week in item.get("weeks", [])]
+    pool = matched or lessons
+    return pool[g.today.toordinal() % len(pool)]
+
+
+def _matches_week(item: dict, week: int) -> bool:
+    rng = item.get("range")
+    if not rng:
+        return True
+    return rng[0] <= week <= rng[1]
+
+
+def pick_safety(g: Gestation, tips: dict) -> Dict:
+    pool = [item for item in tips.get("safety", []) if _matches_week(item, g.week)]
+    if not pool:
+        pool = tips.get("safety", [])
+    return pool[g.today.toordinal() % len(pool)] if pool else {}
+
+
+def pick_hacks(g: Gestation, tips: dict, count: int = 2) -> List[Dict]:
+    pool = [item for item in tips.get("hacks", []) if _matches_week(item, g.week)]
+    if not pool:
+        pool = tips.get("hacks", [])
+    if not pool:
+        return []
+    start = g.today.toordinal() * 3
+    picked = []
+    for i in range(min(count, len(pool))):
+        picked.append(pool[(start + i * 7) % len(pool)])
+    return picked
+
+
 def build_card(
     g: Gestation,
     config: Optional[dict] = None,
     weeks: Optional[Dict[int, dict]] = None,
     checkups: Optional[List[dict]] = None,
     meals: Optional[dict] = None,
+    classroom: Optional[List[dict]] = None,
+    tips: Optional[dict] = None,
 ) -> DailyCard:
     config = config or {}
     weeks = weeks if weeks is not None else load_weeks()
     checkups = checkups if checkups is not None else load_checkups()
     meals = meals if meals is not None else load_meals()
+    classroom = classroom if classroom is not None else load_classroom()
+    tips = tips if tips is not None else load_tips()
 
     entry = week_entry(weeks, g.week)
     diet = build_diet(g, meals, weeks)
@@ -323,6 +377,9 @@ def build_card(
         if g.week >= 28
         else "",
         week_note=diet.note,
+        lesson=pick_lesson(g, classroom),
+        safety=pick_safety(g, tips),
+        hacks=pick_hacks(g, tips),
     )
     card.tips_extra = _extra_tips(g)
     return card
@@ -438,6 +495,24 @@ def markdown(card: DailyCard, url: str = "", config: Optional[dict] = None) -> s
     for item in card.week.get("precautions", [])[:4]:
         lines.append("- %s" % item)
     lines.append("")
+    if card.lesson:
+        lines.append("### 科普小课堂 · %s" % card.lesson.get("title", ""))
+        if card.lesson.get("hook"):
+            lines.append("> %s" % card.lesson["hook"])
+        for sec in card.lesson.get("sections", [])[:2]:
+            lines.append("- **%s**：%s" % (sec.get("h", ""), sec.get("p", "")))
+        if card.lesson.get("tip"):
+            lines.append("- **小贴士**：%s" % card.lesson["tip"])
+        lines.append("")
+    if card.safety:
+        lines.append("### 安全提醒")
+        lines.append("- **%s**：%s" % (card.safety.get("title", ""), card.safety.get("detail", "")))
+        lines.append("")
+    if card.hacks:
+        lines.append("### 今日小技巧")
+        for item in card.hacks:
+            lines.append("- **%s**：%s" % (item.get("title", ""), item.get("detail", "")))
+        lines.append("")
     if card.checkup_now:
         lines.append("### 产检提醒")
         for c in card.checkup_now:
@@ -495,6 +570,11 @@ def plain_text(card: DailyCard, url: str = "") -> str:
     parts.append("今日注意：")
     for item in card.week.get("precautions", [])[:4]:
         parts.append("· %s" % item)
+    if card.lesson:
+        parts.append("")
+        parts.append("科普：%s" % card.lesson.get("title", ""))
+        for sec in card.lesson.get("sections", [])[:2]:
+            parts.append("· %s：%s" % (sec.get("h", ""), sec.get("p", "")))
     if card.checkup_now:
         parts.append("")
         parts.append("产检提醒：" + "；".join("%s（%d~%d周）" % (c.name, c.start_week, c.end_week) for c in card.checkup_now))

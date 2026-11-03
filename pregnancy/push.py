@@ -58,6 +58,27 @@ class Message:
         """企业微信 markdown 不渲染图片语法，先把图片行去掉。"""
         return re.sub(r"!\[[^\]]*\]\([^)]*\)\s*", "", self.clipped_markdown(limit))
 
+    def chunks(self, limit: int = WECOM_LIMIT) -> List[str]:
+        """按行切分，保证每条 markdown 不超过企业微信字节上限。"""
+        text = re.sub(r"!\[[^\]]*\]\([^)]*\)\s*", "", self.markdown)
+        if len(text.encode("utf-8")) <= limit:
+            return [text]
+        result: List[str] = []
+        buffer: List[str] = []
+        size = 0
+        for line in text.split("\n"):
+            line_size = len((line + "\n").encode("utf-8"))
+            if buffer and size + line_size > limit:
+                result.append("\n".join(buffer))
+                buffer = [line]
+                size = line_size
+            else:
+                buffer.append(line)
+                size += line_size
+        if buffer:
+            result.append("\n".join(buffer))
+        return result
+
 
 def build_message(card: DailyCard, config: Dict, url: str = "") -> Message:
     return Message(
@@ -228,12 +249,18 @@ def send_wecom(channel: Dict, msg: Message) -> Tuple[bool, str]:
             if not ok or not _done(body)[0]:
                 image_note = "（配图发送失败：%s）" % body[:80]
 
-    content = msg.markdown_without_images()
+    content_parts = msg.chunks()
     if msg.url:
-        content += "\n\n[查看完整卡片](%s)" % msg.url
-    payload = {"msgtype": "markdown", "markdown": {"content": content}}
-    ok, body = _post_json(url, payload)
-    return _done(body) if ok else (ok, body + image_note)
+        content_parts[-1] += "\n\n[查看完整卡片](%s)" % msg.url
+    last_body = ""
+    for index, content in enumerate(content_parts):
+        title = "（%d/%d）" % (index + 1, len(content_parts)) if len(content_parts) > 1 else ""
+        if title:
+            content = title + "\n" + content
+        ok, last_body = _post_json(url, {"msgtype": "markdown", "markdown": {"content": content}})
+        if not ok or not _done(last_body)[0]:
+            return False, last_body + image_note
+    return True, last_body + image_note
 
 
 def send_dingtalk(channel: Dict, msg: Message) -> Tuple[bool, str]:

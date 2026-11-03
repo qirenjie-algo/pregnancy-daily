@@ -155,7 +155,58 @@ class TestContent(unittest.TestCase):
         self.assertEqual(rows[8]["state"], "now")
         self.assertEqual(rows[9]["state"], "future")
 
-    def test_fallback_week(self):
+    def test_classroom_data(self):
+        from pregnancy.content import load_classroom
+
+        lessons = load_classroom()
+        self.assertGreaterEqual(len(lessons), 15)
+        for item in lessons:
+            self.assertTrue(item.get("title"))
+            self.assertTrue(item.get("hook"))
+            self.assertTrue(item.get("sections"))
+            for sec in item["sections"]:
+                self.assertTrue(sec.get("h") and sec.get("p"))
+            self.assertIsInstance(item.get("weeks"), list)
+
+    def test_tips_data(self):
+        from pregnancy.content import load_tips
+
+        tips = load_tips()
+        self.assertGreaterEqual(len(tips["safety"]), 10)
+        self.assertGreaterEqual(len(tips["hacks"]), 15)
+        for item in tips["safety"] + tips["hacks"]:
+            self.assertTrue(item.get("title") and item.get("detail"))
+
+    def test_card_has_lesson_and_tips(self):
+        card = build_card(Gestation(LMP, TODAY), self.config)
+        self.assertTrue(card.lesson.get("title"))
+        self.assertTrue(card.safety.get("title"))
+        self.assertEqual(len(card.hacks), 2)
+        text = markdown(card)
+        self.assertIn("科普小课堂", text)
+        self.assertIn("安全提醒", text)
+        self.assertIn("今日小技巧", text)
+
+    def test_wecom_chunks(self):
+        card = build_card(Gestation(LMP, TODAY), self.config)
+        msg = build_message(card, self.config)
+        chunks = msg.chunks(3800)
+        self.assertTrue(chunks)
+        for chunk in chunks:
+            self.assertLessEqual(len(chunk.encode("utf-8")), 3800)
+        joined = "\n".join(chunks)
+        self.assertIn("科普小课堂", joined)
+        self.assertNotIn("![", joined)
+
+    def test_pick_lesson_prefers_current_week(self):
+        from pregnancy.content import pick_lesson
+
+        lessons = [
+            {"title": "A", "weeks": [11, 12]},
+            {"title": "B", "weeks": [30]},
+        ]
+        picked = pick_lesson(Gestation(LMP, LMP + dt.timedelta(days=11 * 7)), lessons)
+        self.assertEqual(picked["title"], "A")
         self.assertTrue(week_entry(self.weeks, 99))
         self.assertEqual(week_entry({}, 9), {})
 
@@ -263,6 +314,8 @@ class TestHTTP(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertIn('src="/assets/week-09.webp"', body)
         self.assertIn("全部往期", body)
+        self.assertIn("科普小课堂", body)
+        self.assertIn("安全提醒", body)
 
     def test_history_page(self):
         status, body = self.get("/history")
