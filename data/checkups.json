@@ -1,0 +1,97 @@
+{
+  "schedule": [
+    {
+      "name": "首次 B 超（胎心）",
+      "start_week": 6,
+      "end_week": 8,
+      "tag": "B超",
+      "detail": "确认宫内孕、胎心搏动、胚胎个数，排除宫外孕。",
+      "must": true
+    },
+    {
+      "name": "建档 + 早期系统检查",
+      "start_week": 11,
+      "end_week": 13,
+      "tag": "建档",
+      "detail": "血常规、尿常规、肝肾功能、甲功、TORCH、传染病筛查，建立产检档案。",
+      "must": true
+    },
+    {
+      "name": "NT 检查",
+      "start_week": 11,
+      "end_week": 13,
+      "tag": "排畸",
+      "detail": "颈项透明层厚度，正常一般 < 2.5~3.0mm，需在 13 周 +6 天前完成。",
+      "must": true
+    },
+    {
+      "name": "早期唐筛 / 无创 DNA",
+      "start_week": 12,
+      "end_week": 22,
+      "tag": "筛查",
+      "detail": "唐筛 15~20 周，无创 DNA 12~22 周，高龄或高危人群建议咨询产前诊断。",
+      "must": false
+    },
+    {
+      "name": "大排畸 B 超",
+      "start_week": 20,
+      "end_week": 24,
+      "tag": "排畸",
+      "detail": "系统筛查心脏、脊柱、唇腭裂、四肢、脑结构等，是孕期最重要的结构检查。",
+      "must": true
+    },
+    {
+      "name": "糖耐量试验 OGTT",
+      "start_week": 24,
+      "end_week": 28,
+      "tag": "筛查",
+      "detail": "空腹、服糖后 1 小时、2 小时抽血，筛查妊娠糖尿病。",
+      "must": true
+    },
+    {
+      "name": "孕晚期 B 超 + 血常规",
+      "start_week": 28,
+      "end_week": 30,
+      "tag": "B超",
+      "detail": "评估胎儿生长、羊水、胎盘位置，复查贫血与肝功能。",
+      "must": true
+    },
+    {
+      "name": "胎心监护 NST",
+      "start_week": 32,
+      "end_week": 34,
+      "tag": "监护",
+      "detail": "每次约 20 分钟，评估胎儿宫内状态，之后按医嘱定期复查。",
+      "must": true
+    },
+    {
+      "name": "B 族链球菌 GBS 筛查",
+      "start_week": 35,
+      "end_week": 37,
+      "tag": "筛查",
+      "detail": "阴道/直肠拭子，阳性者分娩时使用抗生素预防新生儿感染。",
+      "must": true
+    },
+    {
+      "name": "每周产检",
+      "start_week": 36,
+      "end_week": 42,
+      "tag": "产检",
+      "detail": "36 周起每周一次，包括胎心监护、宫高腹围、胎位、宫颈评估。",
+      "must": true
+    },
+    {
+      "name": "过期妊娠评估",
+      "start_week": 41,
+      "end_week": 42,
+      "tag": "评估",
+      "detail": "41 周起每 2~3 天胎心监护 + 羊水评估，讨论引产或剖宫产。",
+      "must": true
+    }
+  ],
+  "frequency_note": {
+    "1": "孕早期：确认宫内孕后约每 4 周一次",
+    "2": "孕中期：每 4 周一次",
+    "3": "孕晚期：28~35 周每 2 周一次，36 周起每周一次"
+  }
+}

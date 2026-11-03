@@ -1,0 +1,74 @@
+name: 孕期每日推送 · 云端版
+
+on:
+  schedule:
+    # UTC 23:30 = 北京时间 07:30；GitHub 的定时可能有几分钟延迟
+    - cron: "30 23 * * *"
+  workflow_dispatch: {}
+
+# 部署 GitHub Pages 需要这些权限
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pregnancy-pages
+  cancel-in-progress: false
+
+env:
+  TZ: Asia/Shanghai
+  # 如果仓库名是 <用户名>.github.io，请改成 https://<用户名>.github.io/
+  PREGNANCY_BASE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 写入配置（含推送密钥，来自 Secrets）
+        run: printf '%s' "$PREGNANCY_CONFIG" > config.json
+        env:
+          PREGNANCY_CONFIG: ${{ secrets.PREGNANCY_CONFIG }}
+
+      - name: 生成本期静态站点（含往期与配图）
+        run: python app.py export --out site
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
+  push:
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 写入配置
+        run: printf '%s' "$PREGNANCY_CONFIG" > config.json
+        env:
+          PREGNANCY_CONFIG: ${{ secrets.PREGNANCY_CONFIG }}
+
+      - name: 发送今日推送（含配图与往期链接）
+        run: python app.py push

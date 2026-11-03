@@ -1,0 +1,59 @@
+{
+  "lmp": "2026-09-02",
+  "wife_name": "老婆",
+  "baby_nickname": "宝宝",
+  "push_time": "07:30",
+  "timezone": "Asia/Shanghai",
+  "port": 8787,
+  "base_url": "",
+  "height_cm": 165,
+  "pre_weight_kg": 55,
+  "channels": [
+    {
+      "name": "老婆微信",
+      "type": "serverchan",
+      "enabled": false,
+      "sendkey": "SCTxxxxxxxxxxxxxxxx"
+    },
+    {
+      "name": "我的微信",
+      "type": "pushplus",
+      "enabled": false,
+      "token": "xxxxxxxxxxxxxxxx"
+    },
+    {
+      "name": "iPhone",
+      "type": "bark",
+      "enabled": false,
+      "key": "xxxxxxxxxxxxxxxx",
+      "server": "https://api.day.app",
+      "group": "孕期"
+    },
+    {
+      "name": "Telegram",
+      "type": "telegram",
+      "enabled": false,
+      "token": "123456:ABC-DEF",
+      "chat_id": "123456789"
+    },
+    {
+      "name": "企业微信",
+      "type": "wecom",
+      "enabled": false,
+      "webhook": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxxxxxxx"
+    },
+    {
+      "name": "钉钉",
+      "type": "dingtalk",
+      "enabled": false,
+      "access_token": "xxxxxxxx",
+      "secret": ""
+    },
+    {
+      "name": "飞书",
+      "type": "feishu",
+      "enabled": false,
+      "webhook": "https://open.feishu.cn/open-apis/bot/v2/hook/xxxxxxxx"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "name": "孕期日历 · 每日推送",
+  "short_name": "孕期日历",
+  "description": "按孕周每日推送孕期知识、饮食推荐与注意事项",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fdf6f1",
+  "theme_color": "#ffd8c2",
+  "lang": "zh-CN",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

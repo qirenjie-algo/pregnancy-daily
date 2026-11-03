@@ -1,0 +1,13 @@
+services:
+  pregnancy:
+    build: .
+    container_name: pregnancy-daily
+    restart: unless-stopped
+    ports:
+      - "8787:8787"
+    environment:
+      TZ: Asia/Shanghai
+    volumes:
+      # 配置文件包含推送密钥，单独挂载便于修改后重启生效
+      - ./config.json:/app/config.json:ro
+      - ./data:/app/data
